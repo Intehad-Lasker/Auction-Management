@@ -26,6 +26,16 @@ class Settings(BaseSettings):
     request_interval_seconds: float = Field(default=2.0, ge=1.0)
     user_agent: str = "rosehill-auction-manager/0.1 (personal use)"
 
+    # How often lots are re-scraped. Lots closing sooner are checked more often.
+    scheduler_tick_seconds: int = Field(default=60, ge=30)
+    full_sweep_minutes: int = Field(default=60, ge=10)
+    soon_within_minutes: int = Field(default=120, ge=1)
+    soon_every_minutes: int = Field(default=5, ge=1)
+    imminent_within_minutes: int = Field(default=15, ge=1)
+    imminent_every_minutes: int = Field(default=1, ge=1)
+    # A lot no longer listed this long after its closing time is recorded as closed.
+    close_grace_minutes: int = Field(default=5, ge=1)
+
     @field_validator("timezone")
     @classmethod
     def _known_timezone(cls, value: str) -> str:
