@@ -29,6 +29,13 @@ def build_parser() -> argparse.ArgumentParser:
     scrape.add_argument("--limit", type=int, default=20, help="lots to print with --dry-run")
 
     commands.add_parser("watch", help="keep scraping on the refresh schedule until stopped")
+
+    serve = commands.add_parser("serve", help="run the dashboard (and the scraper schedule)")
+    serve.add_argument("--host", default="127.0.0.1")
+    serve.add_argument("--port", type=int, default=8000)
+    serve.add_argument(
+        "--no-scheduler", action="store_true", help="serve the dashboard without scraping"
+    )
     return parser
 
 
@@ -53,6 +60,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _scrape(container)
     if args.command == "watch":
         return _watch(container)
+    if args.command == "serve":
+        return _serve(container, args.host, args.port, scheduler=not args.no_scheduler)
     parser.error(f"unknown command {args.command}")
     return 2  # pragma: no cover - parser.error exits
 
@@ -81,6 +90,16 @@ def _watch(container: Container) -> int:
     print(f"watching source {container.source.name}; press Ctrl+C to stop")
     with contextlib.suppress(KeyboardInterrupt, SystemExit):
         scheduler.start()
+    return 0
+
+
+def _serve(container: Container, host: str, port: int, *, scheduler: bool) -> int:
+    import uvicorn
+
+    from rosehill.web.app import create_app
+
+    print(f"dashboard at http://{host}:{port}  (source: {container.source.name})")
+    uvicorn.run(create_app(container, run_scheduler=scheduler), host=host, port=port)
     return 0
 
 
