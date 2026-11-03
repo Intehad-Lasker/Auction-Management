@@ -5,8 +5,11 @@ description = "Find underpriced lots on Rosehill Auctions in the final hours bef
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "alembic>=1.14",
+    "apscheduler>=3.10,<4",
     "httpx>=0.28",
     "pydantic-settings>=2.6",
+    "sqlalchemy>=2.0.36",
 ]
 
 [project.scripts]
@@ -44,3 +47,7 @@ python_version = "3.12"
 strict = true
 mypy_path = "src"
 packages = ["rosehill"]
+
+[[tool.mypy.overrides]]
+module = ["apscheduler.*"]
+ignore_missing_imports = true

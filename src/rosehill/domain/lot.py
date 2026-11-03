@@ -45,3 +45,35 @@ class ScrapedLot:
 
     def time_left(self, now: datetime) -> timedelta:
         return self.closes_at - now
+
+
+@dataclass(frozen=True, slots=True)
+class StoredLot:
+    """A lot as the app knows it: the latest scraped values plus tracking fields."""
+
+    id: int
+    source: str
+    source_id: str
+    title: str
+    current_bid: Money
+    bid_count: int
+    closes_at: datetime
+    status: LotStatus
+    url: str
+    first_seen_at: datetime
+    last_scraped_at: datetime
+    photos: tuple[str, ...] = field(default=())
+    pickup_location: str | None = None
+    category: str | None = None
+    auction_id: str | None = None
+
+    def time_left(self, now: datetime) -> timedelta:
+        return self.closes_at - now
+
+    def differs_from(self, scraped: ScrapedLot) -> bool:
+        """True if the bid state changed, which is what a snapshot records."""
+        return (self.current_bid, self.bid_count, self.closes_at) != (
+            scraped.current_bid,
+            scraped.bid_count,
+            scraped.closes_at,
+        )

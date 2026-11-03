@@ -1,3 +1,6 @@
+import re
+from pathlib import Path
+
 import pytest
 
 from rosehill import __version__
@@ -18,8 +21,25 @@ def test_scrape_dry_run_prints_lots_soonest_first(capsys: pytest.CaptureFixture[
     assert out.count("DEMO-") == 5
 
 
-def test_scrape_without_dry_run_is_not_available_yet(capsys: pytest.CaptureFixture[str]) -> None:
-    with pytest.raises(SystemExit) as exc:
-        main(["scrape"])
-    assert exc.value.code == 2
-    assert "--dry-run" in capsys.readouterr().err
+def test_db_upgrade_creates_the_database(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    db = tmp_path / "data" / "rosehill.db"
+    monkeypatch.setenv("ROSEHILL_DATABASE_URL", f"sqlite:///{db}")
+    assert main(["db", "upgrade"]) == 0
+    assert db.exists()
+    assert "up to date" in capsys.readouterr().out
+
+
+def test_scrape_saves_lots_and_reports_counts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("ROSEHILL_DATABASE_URL", f"sqlite:///{tmp_path / 'rosehill.db'}")
+    assert main(["scrape"]) == 0
+    first = capsys.readouterr().out
+    assert "new: 2000" in first
+    assert main(["scrape"]) == 0
+    second = capsys.readouterr().out
+    # The same lots are already stored; only lots that rolled into the window are new.
+    new = int(re.search(r"new: (\d+)", second).group(1))  # type: ignore[union-attr]
+    assert new < 10
