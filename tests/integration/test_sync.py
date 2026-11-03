@@ -165,3 +165,9 @@ def test_events_are_published_after_commit(uow: Callable[[], SqlUnitOfWork], clo
     bus.subscribe(LotUpdated, check)
     SyncService(uow, bus, clock).apply("demo", [scraped("A")])
     assert stored_when_notified == [True]
+
+
+def test_result_reads_as_plain_words() -> None:
+    from rosehill.services.sync import SyncResult
+
+    assert str(SyncResult(64, 0, 54, 5)) == "64 lots seen, 0 new, 54 changed, 5 closed"

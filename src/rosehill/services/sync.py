@@ -18,6 +18,11 @@ class SyncResult:
     changed: int = 0
     closed: int = 0
 
+    def __str__(self) -> str:
+        return (
+            f"{self.seen} lots seen, {self.new} new, {self.changed} changed, {self.closed} closed"
+        )
+
 
 class SyncService:
     def __init__(
