@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "Find underpriced lots on Rosehill Auctions in the final hours before they close."
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "pydantic-settings>=2.6",
+]
 
 [project.scripts]
 rosehill = "rosehill.cli:main"
