@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "alembic>=1.14",
+    "apscheduler>=3.10,<4",
     "httpx>=0.28",
     "pydantic-settings>=2.6",
     "sqlalchemy>=2.0.36",
