@@ -47,3 +47,7 @@ python_version = "3.12"
 strict = true
 mypy_path = "src"
 packages = ["rosehill"]
+
+[[tool.mypy.overrides]]
+module = ["apscheduler.*"]
+ignore_missing_imports = true
