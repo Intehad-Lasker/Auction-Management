@@ -4,9 +4,10 @@ A personal tool for [Rosehill Auctions](https://rosehillonline.ca). In the last
 hour or two before lots close, it helps you scan around 2,000 listings and spot
 lots that are cheap after fees and worth flipping.
 
-> **Status:** early development. The project skeleton and settings are in
-> place; the scraper, dashboard, calculators and watchlist are being built in
-> that order. See the [v1 design](docs/superpowers/specs/2026-11-03-rosehill-v1-design.md).
+> **Status:** early development. Scraping and storage work against a built-in
+> **demo source** (generated sample lots); the Rosehill adapter is pending a look
+> at how the site serves its listings. The dashboard, calculators and watchlist
+> come next. See the [v1 design](docs/superpowers/specs/2026-11-03-rosehill-v1-design.md).
 
 ## Planned v1 features
 
@@ -30,8 +31,20 @@ lots that are cheap after fees and worth flipping.
 ```bash
 uv sync
 cp .env.example .env   # optional: adjust settings
-uv run rosehill --version
+uv run rosehill db upgrade
 ```
+
+## Usage
+
+```bash
+uv run rosehill scrape --dry-run   # print what the source returns, save nothing
+uv run rosehill scrape             # one full sweep into the database
+uv run rosehill watch              # keep scraping on the refresh schedule (Ctrl+C stops)
+```
+
+`watch` does a full sweep every hour and re-checks lots closing within two hours
+every 5 minutes, and within 15 minutes every minute. When a lot closes, its final
+price is saved to `lot_closings`; every bid change is saved to `lot_snapshots`.
 
 ## Configuration
 
@@ -52,14 +65,22 @@ uv run mypy             # type check (strict)
 
 ```
 src/rosehill/
+  domain/       Money, ScrapedLot, StoredLot (no I/O)
+  scraping/     LotSource port, polite HTTP client, adapters/ (demo for now)
+  storage/      SQLAlchemy tables, Alembic migrations, repositories, HTTP cache
+  services/     sync (store lots, snapshots, closings), refresh policy and runner
+  events.py     in-process event bus (LotUpdated, LotClosed)
+  container.py  composition root: picks implementations and wires them up
   config.py     settings
   cli.py        command-line entry point
-tests/unit/     fast tests with no network or database
-docs/           design and implementation plans
+tests/unit/         fast tests, no database or network
+tests/integration/  repository, sync and refresh tests against SQLite
+docs/               design and implementation plans
 ```
 
-The full layered layout (domain, pricing, scraping, storage, services, web) is
-described in the design doc and arrives milestone by milestone.
+Dependencies point inward: services use the `LotSource` and `UnitOfWork`
+protocols, never SQLAlchemy or a specific scraper. Adding a scraper means writing
+an adapter and registering it in `scraping/registry.py`.
 
 ### Conventions
 
