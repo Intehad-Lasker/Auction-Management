@@ -79,8 +79,11 @@ class ScrapeRunLog(Protocol):
 class UnitOfWork(Protocol):
     """One transaction. Leaving the `with` block without `commit()` rolls back."""
 
-    lots: LotStore
-    runs: ScrapeRunLog
+    @property
+    def lots(self) -> LotStore: ...
+
+    @property
+    def runs(self) -> ScrapeRunLog: ...
 
     def __enter__(self) -> Self: ...
 
