@@ -1,0 +1,4 @@
+# Playwright MCP snapshots, console logs and screenshots
+.playwright-mcp/
+# Superpowers scratch (plan ledgers, brainstorm companion files)
+.superpowers/
