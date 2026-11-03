@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     )
 
     database_url: str = "sqlite:///data/rosehill.db"
+    source: str = "demo"
     source_base_url: str = "https://rosehillonline.ca"
     timezone: str = "America/Toronto"
     request_interval_seconds: float = Field(default=2.0, ge=1.0)
