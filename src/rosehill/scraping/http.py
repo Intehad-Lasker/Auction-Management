@@ -141,6 +141,8 @@ class PoliteHttpClient:
         response = self._send(robots_url, {})
         if response.status_code == 200:
             parser.parse(response.text.splitlines())
+        elif response.status_code in (401, 403):
+            parser.parse(["User-agent: *", "Disallow: /"])  # robots.txt access denied
         else:
-            parser.parse([])  # missing or unreadable robots.txt: everything allowed
+            parser.parse([])  # missing robots.txt: everything allowed
         return parser

@@ -180,3 +180,10 @@ def test_refuses_paths_disallowed_by_robots_txt() -> None:
 def test_minimum_interval_below_one_second_is_rejected() -> None:
     with pytest.raises(ValueError):
         make_client(Server(), FakeTime(), interval=0.1)
+
+
+def test_forbidden_robots_txt_disallows_everything() -> None:
+    server = Server({"/robots.txt": [httpx.Response(403)]})
+    client, _ = make_client(server, FakeTime())
+    with pytest.raises(DisallowedByRobotsError):
+        client.get_text("/lots")
