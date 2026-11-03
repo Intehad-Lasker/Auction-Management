@@ -58,3 +58,22 @@ def test_lots_past_closing_are_reported_closed_and_left_out_of_active() -> None:
 
 def test_name_is_demo() -> None:
     assert DemoLotSource(count=1).name == "demo"
+
+
+def test_a_lot_keeps_its_identity_across_restarts() -> None:
+    early = DemoLotSource(count=100, seed=1, now=lambda: START)
+    lot = next(iter(early.fetch_active_lots()))
+    later = DemoLotSource(count=100, seed=1, now=lambda: START + timedelta(hours=3))
+    [again] = later.fetch_lots([lot.source_id])
+    assert (again.title, again.closes_at) == (lot.title, lot.closes_at)
+
+
+def test_lots_close_one_after_another_across_the_window() -> None:
+    lots = list(DemoLotSource(count=480, seed=1, now=lambda: START).fetch_active_lots())
+    closes = [lot.closes_at for lot in lots]
+    assert closes == sorted(closes)
+    assert closes[-1] - START <= timedelta(hours=8)
+
+
+def test_unknown_ids_are_ignored() -> None:
+    assert list(DemoLotSource(count=10).fetch_lots(["nope", "DEMO-abc"])) == []

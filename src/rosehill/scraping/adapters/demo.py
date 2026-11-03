@@ -1,12 +1,19 @@
 """A fake lot source for developing and testing without touching the real site.
 
-Lots are generated from a seed, so the same seed always gives the same catalogue.
-Bids and bid counts climb as each lot's closing time approaches. Every URL uses the
-reserved `.invalid` domain so demo data can never be mistaken for a real listing.
+The catalogue is a rolling sequence: lot number n always closes at
+`EPOCH + n * spacing`, and its title, category and final price come from a random
+generator seeded with (seed, n). So any process, at any time, agrees on what lot n
+is and when it closes, which keeps demo data consistent across restarts and in the
+database. At any moment the source lists the `count` lots closing in the next
+`window`. Bids and bid counts climb as each lot's closing time approaches.
+
+Every URL uses the reserved `.invalid` domain so demo data can never be mistaken
+for a real listing.
 """
 
 from __future__ import annotations
 
+import math
 import random
 from collections.abc import Callable, Collection, Iterator
 from dataclasses import dataclass
@@ -14,6 +21,9 @@ from datetime import UTC, datetime, timedelta
 
 from rosehill.domain.lot import ScrapedLot
 from rosehill.domain.money import Money
+
+EPOCH = datetime(2026, 1, 1, tzinfo=UTC)
+_ID_PREFIX = "DEMO-"
 
 _ITEMS: dict[str, list[tuple[str, int]]] = {
     "Tools": [
@@ -62,6 +72,7 @@ _ITEMS: dict[str, list[tuple[str, int]]] = {
 }
 _CONDITIONS = ["New in box", "Open box", "Like new", "Used", "Untested", "Customer return"]
 _PICKUP = ["Burlington warehouse", "Hamilton warehouse", "Oakville depot"]
+_LISTED_FOR = timedelta(days=5)
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,7 +83,6 @@ class _Template:
     pickup: str
     opens_at: datetime
     closes_at: datetime
-    start_bid_cents: int
     final_bid_cents: int
     final_bid_count: int
     photo_count: int
@@ -83,15 +93,16 @@ class DemoLotSource:
         self,
         *,
         count: int = 2000,
+        window: timedelta = timedelta(hours=8),
         seed: int = 7,
         now: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
+        if count < 1:
+            raise ValueError("count must be at least 1")
+        self._count = count
+        self._spacing = window / count
+        self._seed = seed
         self._now = now
-        anchor = now().replace(second=0, microsecond=0)
-        rng = random.Random(seed)
-        self._lots = {
-            t.source_id: t for t in (self._template(i, anchor, rng) for i in range(count))
-        }
 
     @property
     def name(self) -> str:
@@ -99,37 +110,34 @@ class DemoLotSource:
 
     def fetch_active_lots(self) -> Iterator[ScrapedLot]:
         now = self._now()
-        for template in self._lots.values():
+        first = math.floor((now - EPOCH) / self._spacing) + 1
+        for n in range(first, first + self._count):
+            template = self._template(n)
             if template.closes_at > now:
                 yield self._snapshot(template, now)
 
     def fetch_lots(self, source_ids: Collection[str]) -> Iterator[ScrapedLot]:
         now = self._now()
         for source_id in source_ids:
-            template = self._lots.get(source_id)
-            if template is not None:
-                yield self._snapshot(template, now)
+            n = _parse_id(source_id)
+            if n is not None:
+                yield self._snapshot(self._template(n), now)
 
-    @staticmethod
-    def _template(index: int, anchor: datetime, rng: random.Random) -> _Template:
+    def _template(self, n: int) -> _Template:
+        rng = random.Random(self._seed * 1_000_003 + n)
         category = rng.choice(list(_ITEMS))
         name, value = rng.choice(_ITEMS[category])
         condition = rng.choice(_CONDITIONS)
         value_cents = int(value * 100 * rng.uniform(0.7, 1.3))
-        # Weighted so plenty of lots fall inside the 30/60/120-minute dashboard windows.
-        minutes_to_close = rng.choice(
-            [rng.uniform(2, 30), rng.uniform(30, 120), rng.uniform(120, 480)]
-        )
-        closes_at = anchor + timedelta(minutes=minutes_to_close)
         hot = rng.random() < 0.7
+        closes_at = EPOCH + self._spacing * n
         return _Template(
-            source_id=f"DEMO-{index + 1:05d}",
+            source_id=f"{_ID_PREFIX}{n:07d}",
             title=f"{name} - {condition}",
             category=category,
             pickup=rng.choice(_PICKUP),
-            opens_at=closes_at - timedelta(days=5),
+            opens_at=closes_at - _LISTED_FOR,
             closes_at=closes_at,
-            start_bid_cents=100,
             final_bid_cents=int(value_cents * (rng.uniform(0.35, 0.85) if hot else 0.15)),
             final_bid_count=rng.randint(12, 45) if hot else rng.randint(0, 3),
             photo_count=rng.randint(1, 4),
@@ -137,13 +145,12 @@ class DemoLotSource:
 
     @staticmethod
     def _snapshot(t: _Template, now: datetime) -> ScrapedLot:
-        duration = (t.closes_at - t.opens_at).total_seconds()
-        elapsed = (min(now, t.closes_at) - t.opens_at).total_seconds()
-        progress = max(0.0, min(1.0, elapsed / duration))
-        # Most bidding happens near the end, so both curves are steep late on.
-        bid = t.start_bid_cents + (t.final_bid_cents - t.start_bid_cents) * progress**6
-        bids = round(t.final_bid_count * progress**4)
-        whole_dollars = max(t.start_bid_cents, int(bid) // 100 * 100) if bids else 0
+        progress = (min(now, t.closes_at) - t.opens_at) / (t.closes_at - t.opens_at)
+        progress = max(0.0, min(1.0, progress))
+        # Most bidding happens at the very end, so both curves are steep late on.
+        bids = round(t.final_bid_count * progress**40)
+        bid_cents = t.final_bid_cents * progress**60 if bids else 0
+        whole_dollars = max(100, int(bid_cents) // 100 * 100) if bids else 0
         return ScrapedLot(
             source_id=t.source_id,
             title=t.title,
@@ -152,10 +159,17 @@ class DemoLotSource:
             closes_at=t.closes_at,
             url=f"https://demo.invalid/lots/{t.source_id}",
             photos=tuple(
-                f"https://demo.invalid/photos/{t.source_id}-{n}.jpg" for n in range(t.photo_count)
+                f"https://demo.invalid/photos/{t.source_id}-{k}.jpg" for k in range(t.photo_count)
             ),
             pickup_location=t.pickup,
             category=t.category,
             auction_id="DEMO",
             is_closed=now >= t.closes_at,
         )
+
+
+def _parse_id(source_id: str) -> int | None:
+    if not source_id.startswith(_ID_PREFIX):
+        return None
+    digits = source_id.removeprefix(_ID_PREFIX)
+    return int(digits) if digits.isdigit() else None
