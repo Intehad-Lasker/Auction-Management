@@ -7,9 +7,13 @@ requires-python = ">=3.12"
 dependencies = [
     "alembic>=1.14",
     "apscheduler>=3.10,<4",
+    "fastapi>=0.115",
     "httpx>=0.28",
+    "jinja2>=3.1",
     "pydantic-settings>=2.6",
+    "python-multipart>=0.0.17",
     "sqlalchemy>=2.0.36",
+    "uvicorn>=0.32",
 ]
 
 [project.scripts]
@@ -18,7 +22,9 @@ rosehill = "rosehill.cli:main"
 [dependency-groups]
 dev = [
     "mypy>=1.13",
+    "playwright==1.63.0",
     "pytest>=8.3",
+    "pytest-playwright>=0.6",
     "ruff>=0.8",
 ]
 
@@ -32,6 +38,8 @@ packages = ["src/rosehill"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra --strict-markers"
+markers = ["e2e: drives the dashboard in a real browser (needs Playwright's Chromium)"]
+filterwarnings = ["ignore:Using .httpx. with .starlette.testclient. is deprecated"]
 
 [tool.ruff]
 line-length = 100

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Collection
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from types import TracebackType
@@ -74,6 +74,28 @@ class ScrapeRunLog(Protocol):
     ) -> None: ...
 
     def latest(self, source: str, kind: str | None = None) -> ScrapeRun | None: ...
+
+
+class LotQueries(Protocol):
+    """Read-only queries for screens. Kept apart from LotStore, which serves the scraper."""
+
+    def closing_between(
+        self,
+        source: str,
+        *,
+        start: datetime,
+        end: datetime,
+        search_terms: Sequence[str],
+        category: str | None,
+        max_bids: int | None,
+        sort: str,
+        descending: bool,
+        limit: int,
+    ) -> tuple[list[StoredLot], int]:
+        """Open lots closing in [start, end), plus the total before `limit` was applied."""
+        ...
+
+    def categories(self, source: str) -> list[str]: ...
 
 
 class UnitOfWork(Protocol):

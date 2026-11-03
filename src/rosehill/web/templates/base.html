@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Rosehill{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='app.css') }}">
+  <script src="{{ url_for('static', path='vendor/htmx-2.0.4.min.js') }}" defer></script>
+  <script src="{{ url_for('static', path='countdown.js') }}" defer></script>
+  <script src="{{ url_for('static', path='sorting.js') }}" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="wordmark" href="/">Rosehill</a>
+    <nav class="nav" aria-label="Main">
+      <a href="/" {% if request.url.path == "/" %}aria-current="page"{% endif %}>Closing soon</a>
+    </nav>
+    {% if is_demo %}
+    <p class="demo-flag" role="status">Demo data: generated sample lots, not Rosehill listings</p>
+    {% endif %}
+  </header>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

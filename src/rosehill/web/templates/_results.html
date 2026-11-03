@@ -1,0 +1,65 @@
+{% set f = view.filters %}
+<div class="results-meta">
+  <p class="count">
+    {% if view.total == view.rows|length %}{{ view.total }} lots{% else %}Showing {{ view.rows|length }} of {{ view.total }} lots{% endif %}
+    closing in the next {{ f.window_minutes }} minutes
+  </p>
+  <p class="freshness">
+    {% if view.last_run %}
+      {% if view.last_run.error %}
+      <span class="stale">Last scrape failed at {{ view.last_run.started_at|local_time }}: {{ view.last_run.error }}</span>
+      {% else %}
+      Prices checked {{ view.last_run.started_at|local_time }}
+      {% endif %}
+    {% else %}
+      <span class="stale">No scrape yet. Prices appear after the first run.</span>
+    {% endif %}
+  </p>
+</div>
+
+{% if view.rows %}
+<div class="table-wrap">
+<table class="lots" data-window="{{ f.window_minutes }}">
+  <thead>
+    <tr>
+      {% for key, label, cls in [("time_left", "Time left", "col-time"), (None, "Lot", "col-lot"), ("price", "Current bid", "col-num"), ("bids", "Bids", "col-num")] %}
+      <th scope="col" class="{{ cls }}"
+          {% if key %}aria-sort="{% if f.sort.value == key %}{{ 'descending' if f.descending else 'ascending' }}{% else %}none{% endif %}"{% endif %}>
+        {% if key %}
+        {% set p = sort_params(key) %}
+        <a href="/?{{ p|urlencode }}" data-sort="{{ p.sort }}" data-dir="{{ p.dir }}">{{ label }}</a>
+        {% else %}{{ label }}{% endif %}
+      </th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for lot in view.rows %}
+    {% set left = lot.time_left(view.now) %}
+    <tr class="lot urgency-{{ urgency(left) }}" data-closes="{{ (lot.closes_at.timestamp() * 1000)|int }}">
+      <td class="col-time">
+        <span class="time-text">{{ left|time_left }}</span><span class="closes-at">ends {{ lot.closes_at|local_time }}</span>
+        <span class="fuse" aria-hidden="true"><span class="fuse-burn" style="width: {{ fuse_percent(left, f.window_minutes) }}%"></span></span>
+      </td>
+      <td class="col-lot">
+        <a class="lot-title" href="{{ lot.url }}" target="_blank" rel="noopener">{{ lot.title }}</a>
+        <span class="lot-meta">{{ lot.category or "Uncategorised" }}{% if lot.pickup_location %}, pickup at {{ lot.pickup_location }}{% endif %}</span>
+      </td>
+      <td class="col-num bid">{% if lot.bid_count %}{{ lot.current_bid }}{% else %}<span class="no-bid">No bids</span>{% endif %}</td>
+      <td class="col-num">{{ lot.bid_count }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="empty">
+  {% if f.search or f.category or f.max_bids is not none %}
+  <p>No lots closing in the next {{ f.window_minutes }} minutes match these filters.</p>
+  <p><a href="/?window={{ f.window_minutes }}">Clear filters</a></p>
+  {% else %}
+  <p>No lots close in the next {{ f.window_minutes }} minutes.</p>
+  {% if f.window_minutes < 120 %}<p><a href="/?window=120">Show the next 120 minutes</a></p>{% endif %}
+  {% endif %}
+</div>
+{% endif %}

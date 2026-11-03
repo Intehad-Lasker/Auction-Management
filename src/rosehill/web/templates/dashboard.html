@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Closing soon{% endblock %}
+{% block content %}
+{% set f = view.filters %}
+<form class="filters" id="filters"
+      hx-get="/lots" hx-target="#results" hx-push-url="true"
+      hx-trigger="change, input from:#q delay:250ms, submit">
+  <fieldset class="window">
+    <legend>Closing in the next</legend>
+    {% for minutes in view.windows %}
+    <label class="window-option">
+      <input type="radio" name="window" value="{{ minutes }}" {% if f.window_minutes == minutes %}checked{% endif %}>
+      <span class="window-number">{{ minutes }}</span>
+    </label>
+    {% endfor %}
+    <span class="window-unit">minutes</span>
+  </fieldset>
+
+  <div class="filter-row">
+    <label class="field field-search">
+      <span class="field-label">Search titles</span>
+      <input type="search" id="q" name="q" value="{{ f.search }}" placeholder="dyson, drill, sofa" autocomplete="off">
+    </label>
+    <label class="field">
+      <span class="field-label">Category</span>
+      <select name="category">
+        <option value="">All categories</option>
+        {% for category in view.categories %}
+        <option value="{{ category }}" {% if f.category == category %}selected{% endif %}>{{ category }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="field">
+      <span class="field-label">Bids</span>
+      <select name="max_bids">
+        <option value="">Any number</option>
+        {% for n, label in [(0, "No bids yet"), (3, "3 or fewer"), (5, "5 or fewer"), (10, "10 or fewer")] %}
+        <option value="{{ n }}" {% if f.max_bids == n %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <input type="hidden" name="sort" id="sort" value="{{ f.sort.value }}">
+    <input type="hidden" name="dir" id="dir" value="{{ 'desc' if f.descending else 'asc' }}">
+    <noscript><button type="submit">Apply filters</button></noscript>
+  </div>
+</form>
+
+<section id="results" aria-live="polite"
+         hx-get="/lots" hx-include="#filters" hx-trigger="every 60s" hx-swap="innerHTML">
+  {% include "_results.html" %}
+</section>
+{% endblock %}
