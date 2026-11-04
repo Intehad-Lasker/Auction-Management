@@ -57,6 +57,18 @@ again to reverse. Countdowns tick every second and turn yellow inside 15 minutes
 and red inside 5. The table refreshes itself every minute. When a lot closes, its final
 price is saved to `lot_closings`; every bid change is saved to `lot_snapshots`.
 
+## Investigating a site
+
+`scripts/investigate_site.py` records how a site loads its listings (JSON API
+calls versus rendered HTML) so a scraper adapter can be written for it. It only
+reads public pages, skips anything `robots.txt` disallows, and saves its findings
+under `data/investigation/` (git-ignored):
+
+```bash
+uv run playwright install chromium   # first time only
+uv run python scripts/investigate_site.py https://rosehillonline.ca
+```
+
 ## Configuration
 
 All settings are environment variables prefixed with `ROSEHILL_`, read from the
