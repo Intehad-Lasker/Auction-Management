@@ -21,6 +21,7 @@ rosehill = "rosehill.cli:main"
 
 [dependency-groups]
 dev = [
+    "hypothesis>=6.100",
     "mypy>=1.13",
     "playwright==1.63.0",
     "pytest>=8.3",
