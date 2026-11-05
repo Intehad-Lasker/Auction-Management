@@ -1,0 +1,47 @@
+{% macro breakdown(cost) %}
+<table class="breakdown">
+  <tr><th scope="row">Bid</th><td>{{ cost.bid }}</td></tr>
+  {% for line in cost.lines %}
+  <tr><th scope="row">{{ line.label }}</th><td>{{ line.amount }}</td></tr>
+  {% endfor %}
+  <tr class="total"><th scope="row">All-in</th><td>{{ cost.total }}</td></tr>
+</table>
+{% endmacro %}
+
+{% if calc.errors %}
+<ul class="calc-errors" role="alert">
+  {% for name, message in calc.errors.items() %}<li>{{ {"bid": "Bid", "resale": "Resale price", "profit": "Profit"}[name] }}: {{ message }}</li>{% endfor %}
+</ul>
+{% endif %}
+
+<div class="calc-results">
+  <div class="calc-card">
+    <h2>All-in cost</h2>
+    {% if calc.cost %}
+      <p class="big-figure">{{ calc.cost.total }}</p>
+      {{ breakdown(calc.cost) }}
+      {% if calc.profit_at_bid is not none %}
+      <p class="{{ 'loss' if calc.profit_at_bid.cents < 0 else 'gain' }}">
+        Resold for {{ calc.resale }}, that leaves {{ calc.profit_at_bid }}.
+      </p>
+      {% endif %}
+      {% if calc.over_max %}<p class="over-limit" role="alert">Over your max bid of {{ calc.best.bid }}.</p>{% endif %}
+    {% else %}
+      <p class="hint">Enter a bid to see the buyer's premium, tax and total.</p>
+    {% endif %}
+  </div>
+
+  <div class="calc-card">
+    <h2>Max bid</h2>
+    {% if calc.resale is none %}
+      <p class="hint">Enter what it resells for, and the profit you want, to get the highest bid worth placing.</p>
+    {% elif calc.best %}
+      <p class="big-figure">{{ calc.best.bid }}</p>
+      <p>Bid up to <strong>{{ calc.best.bid }}</strong>. All-in {{ calc.best.cost.total }}, leaving {{ calc.best.profit }} when resold for {{ calc.resale }}.</p>
+      {{ breakdown(calc.best.cost) }}
+    {% else %}
+      <p class="big-figure loss">Pass</p>
+      <p>Even a $0 bid leaves less than {{ calc.target_profit or "$0.00" }} after fees.</p>
+    {% endif %}
+  </div>
+</div>

@@ -6,7 +6,7 @@ from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from types import TracebackType
-from typing import Protocol, Self
+from typing import Any, Protocol, Self
 
 from rosehill.domain.lot import ScrapedLot, StoredLot
 from rosehill.domain.money import Money
@@ -98,6 +98,14 @@ class LotQueries(Protocol):
     def categories(self, source: str) -> list[str]: ...
 
 
+class SettingsStore(Protocol):
+    """Business rules as JSON values, keyed by name."""
+
+    def get(self, key: str) -> Any | None: ...
+
+    def put(self, key: str, value: Any, updated_at: datetime) -> None: ...
+
+
 class UnitOfWork(Protocol):
     """One transaction. Leaving the `with` block without `commit()` rolls back."""
 
@@ -106,6 +114,9 @@ class UnitOfWork(Protocol):
 
     @property
     def runs(self) -> ScrapeRunLog: ...
+
+    @property
+    def settings(self) -> SettingsStore: ...
 
     def __enter__(self) -> Self: ...
 

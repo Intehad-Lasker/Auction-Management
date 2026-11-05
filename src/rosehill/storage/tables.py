@@ -6,8 +6,9 @@ These classes stay inside `storage/`. Repositories translate them to domain obje
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
-from sqlalchemy import ForeignKey, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy import JSON, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from rosehill.storage.db import UTCDateTime
@@ -110,3 +111,13 @@ class HttpCacheRow(Base):
     body: Mapped[str] = mapped_column(Text)
     etag: Mapped[str | None] = mapped_column(Text)
     fetched_at: Mapped[datetime]
+
+
+class SettingRow(Base):
+    """A business rule edited from the Settings page, such as the fee schedule."""
+
+    __tablename__ = "settings"
+
+    key: Mapped[str] = mapped_column(String(80), primary_key=True)
+    value: Mapped[Any] = mapped_column(JSON)
+    updated_at: Mapped[datetime]

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+<h1 class="page-title">Fees and bid increments</h1>
+{% if saved %}<p class="notice notice-ok" role="status">Saved. The calculator and dashboard now use these rates.</p>{% endif %}
+{% if not pricing.confirmed %}<p class="notice" role="note">These are placeholder rates. Copy the buyer's premium, any lot fee and the tax from Rosehill's terms, then save.</p>{% endif %}
+{% if form.error %}<p class="calc-errors" role="alert">{{ form.error }}</p>{% endif %}
+
+<form method="post" action="/settings" class="settings">
+  <fieldset>
+    <legend>Fees, applied in this order</legend>
+    <p class="hint">Tax on "bid and fees above" includes every fee listed before it. Leave a row's amount empty to remove it.</p>
+    <table class="settings-table">
+      <thead><tr><th scope="col">Type</th><th scope="col">Label</th><th scope="col">Amount</th><th scope="col">Tax applies to</th></tr></thead>
+      <tbody>
+      {% for row in form.rules %}
+      <tr>
+        <td><select name="rule-{{ loop.index0 }}-kind" aria-label="Fee {{ loop.index }} type">
+          {% for value, label in [("premium", "Buyer's premium (% of bid)"), ("flat", "Flat fee per lot ($)"), ("tax", "Tax (%)")] %}
+          <option value="{{ value }}" {% if row.kind == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select></td>
+        <td><input name="rule-{{ loop.index0 }}-label" value="{{ row.label }}" aria-label="Fee {{ loop.index }} label" placeholder="Label"></td>
+        <td><input name="rule-{{ loop.index0 }}-value" value="{{ row.value }}" inputmode="decimal" aria-label="Fee {{ loop.index }} amount" class="num"></td>
+        <td><select name="rule-{{ loop.index0 }}-base" aria-label="Fee {{ loop.index }} tax base">
+          <option value="subtotal" {% if row.base == "subtotal" %}selected{% endif %}>Bid and fees above</option>
+          <option value="bid" {% if row.base == "bid" %}selected{% endif %}>Bid only</option>
+        </select></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </fieldset>
+
+  <fieldset>
+    <legend>Bid increments</legend>
+    <p class="hint">From each amount upward, bids rise by the step. The first row must start at $0. The max-bid calculator rounds down to a valid bid.</p>
+    <table class="settings-table">
+      <thead><tr><th scope="col">From ($)</th><th scope="col">Step ($)</th></tr></thead>
+      <tbody>
+      {% for row in form.increments %}
+      <tr>
+        <td><input name="inc-{{ loop.index0 }}-start" value="{{ row.start }}" inputmode="decimal" aria-label="Increment {{ loop.index }} from" class="num"></td>
+        <td><input name="inc-{{ loop.index0 }}-step" value="{{ row.step }}" inputmode="decimal" aria-label="Increment {{ loop.index }} step" class="num"></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </fieldset>
+  <button type="submit" class="primary">Save</button>
+</form>
+{% endblock %}

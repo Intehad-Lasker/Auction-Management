@@ -6,8 +6,8 @@ lots that are cheap after fees and worth flipping.
 
 > **Status:** early development. Scraping and storage work against a built-in
 > **demo source** (generated sample lots); the Rosehill adapter is pending a look
-> at how the site serves its listings. The closing-soon dashboard works; the
-> calculators and watchlist come next. See the [v1 design](docs/superpowers/specs/2026-11-03-rosehill-v1-design.md).
+> at how the site serves its listings. The closing-soon dashboard and the fee and
+> max-bid calculators work; the watchlist comes next. See the [v1 design](docs/superpowers/specs/2026-11-03-rosehill-v1-design.md).
 
 ## Planned v1 features
 
@@ -56,6 +56,24 @@ bid count ("No bids yet", "3 or fewer", ...); click a column heading to sort, an
 again to reverse. Countdowns tick every second and turn yellow inside 15 minutes
 and red inside 5. The table refreshes itself every minute. When a lot closes, its final
 price is saved to `lot_closings`; every bid change is saved to `lot_snapshots`.
+The **All-in** column is the current bid plus fees; click it to open the calculator.
+
+### Calculator
+
+`/calculator` answers two questions as you type:
+
+- **All-in cost**: a bid plus buyer's premium, any flat fee and tax, line by line.
+- **Max bid**: given what you can resell the lot for and the profit you want, the
+  highest bid that still leaves that profit after fees, rounded down to a valid
+  bid increment. If your bid is above it, you get an over-limit warning.
+
+### Settings: fees and bid increments
+
+`/settings` holds the fee schedule: an ordered list of buyer's premiums (% of
+bid), flat per-lot fees and taxes (on the bid alone, or on the bid plus the fees
+above), and the bid increment table. Until you save it, the app uses placeholder
+defaults (15% premium, 13% HST, whole-dollar bids) and says so on every page.
+**Rosehill's actual rates are not confirmed yet**: copy them from the site's terms.
 
 ## Investigating a site
 
@@ -73,7 +91,9 @@ uv run python scripts/investigate_site.py https://rosehillonline.ca
 
 All settings are environment variables prefixed with `ROSEHILL_`, read from the
 environment or from `.env`. See [`.env.example`](.env.example) for the full list
-and defaults. Fee rates will be editable from the app's Settings page.
+and defaults. Fee rates live in the database and are edited on the Settings
+page; `ROSEHILL_DEFAULT_PREMIUM_PERCENT` and `ROSEHILL_DEFAULT_TAX_PERCENT` only
+set the placeholder used before you save them.
 
 ## Development
 
@@ -90,9 +110,11 @@ uv run mypy             # type check (strict)
 ```
 src/rosehill/
   domain/       Money, ScrapedLot, StoredLot (no I/O)
+  pricing/      fee rules and schedules, bid increments, max-bid solver (no I/O)
   scraping/     LotSource port, polite HTTP client, adapters/ (demo for now)
   storage/      SQLAlchemy tables, Alembic migrations, repositories, HTTP cache
-  services/     sync (store lots, snapshots, closings), refresh policy and runner
+  services/     sync (store lots, snapshots, closings), refresh policy and runner,
+                pricing settings
   web/          FastAPI app, routes, Jinja templates, static assets (htmx vendored)
   events.py     in-process event bus (LotUpdated, LotClosed)
   container.py  composition root: picks implementations and wires them up

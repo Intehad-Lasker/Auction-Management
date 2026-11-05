@@ -14,12 +14,17 @@
     <a class="wordmark" href="/">Rosehill</a>
     <nav class="nav" aria-label="Main">
       <a href="/" {% if request.url.path == "/" %}aria-current="page"{% endif %}>Closing soon</a>
+      <a href="/calculator" {% if request.url.path == "/calculator" %}aria-current="page"{% endif %}>Calculator</a>
+      <a href="/settings" {% if request.url.path == "/settings" %}aria-current="page"{% endif %}>Settings</a>
     </nav>
     {% if is_demo %}
     <p class="demo-flag" role="status">Demo data: generated sample lots, not Rosehill listings</p>
     {% endif %}
   </header>
   <main>
+    {% if pricing is defined and not pricing.confirmed and request.url.path != "/settings" %}
+    <p class="notice" role="note">Fees use placeholder rates. Check Rosehill's buyer's premium and <a href="/settings">save it in Settings</a>.</p>
+    {% endif %}
     {% block content %}{% endblock %}
   </main>
 </body>

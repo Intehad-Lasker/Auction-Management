@@ -22,7 +22,7 @@
 <table class="lots" data-window="{{ f.window_minutes }}">
   <thead>
     <tr>
-      {% for key, label, cls in [("time_left", "Time left", "col-time"), (None, "Lot", "col-lot"), ("price", "Current bid", "col-num"), ("bids", "Bids", "col-num")] %}
+      {% for key, label, cls in [("time_left", "Time left", "col-time"), (None, "Lot", "col-lot"), ("price", "Current bid", "col-num"), (None, "All-in", "col-num col-all-in"), ("bids", "Bids", "col-num")] %}
       <th scope="col" class="{{ cls }}"
           {% if key %}aria-sort="{% if f.sort.value == key %}{{ 'descending' if f.descending else 'ascending' }}{% else %}none{% endif %}"{% endif %}>
         {% if key %}
@@ -45,7 +45,9 @@
         <a class="lot-title" href="{{ lot.url }}" target="_blank" rel="noopener">{{ lot.title }}</a>
         <span class="lot-meta">{{ lot.category or "Uncategorised" }}{% if lot.pickup_location %}, pickup at {{ lot.pickup_location }}{% endif %}</span>
       </td>
-      <td class="col-num bid">{% if lot.bid_count %}{{ lot.current_bid }}{% else %}<span class="no-bid">No bids</span>{% endif %}</td>
+      {% set cost = pricing.cost(lot.current_bid) %}
+      <td class="col-num bid">{% if lot.bid_count %}{{ lot.current_bid }}<span class="bid-all-in">{{ cost.total }} all-in</span>{% else %}<span class="no-bid">No bids</span>{% endif %}</td>
+      <td class="col-num col-all-in">{% if lot.bid_count %}<a href="/calculator?bid={{ lot.current_bid.dollars }}" title="Bid {{ cost.bid }} + fees {{ cost.fees }}">{{ cost.total }}</a>{% else %}<span class="no-bid">&ndash;</span>{% endif %}</td>
       <td class="col-num">{{ lot.bid_count }}</td>
     </tr>
     {% endfor %}

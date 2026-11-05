@@ -5,6 +5,7 @@ stored in the database and edited from the Settings page; values here are
 process-level configuration and first-run defaults.
 """
 
+from decimal import Decimal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import Field, field_validator
@@ -35,6 +36,11 @@ class Settings(BaseSettings):
     imminent_every_minutes: int = Field(default=1, ge=1)
     # A lot no longer listed this long after its closing time is recorded as closed.
     close_grace_minutes: int = Field(default=5, ge=1)
+
+    # First-run fee defaults, used until real rates are saved on the Settings page.
+    # Rosehill's actual buyer's premium is not confirmed yet; 13% is Ontario HST.
+    default_premium_percent: Decimal = Field(default=Decimal("15"), ge=0)
+    default_tax_percent: Decimal = Field(default=Decimal("13"), ge=0)
 
     @field_validator("timezone")
     @classmethod

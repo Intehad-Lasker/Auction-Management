@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Calculator{% endblock %}
+{% block content %}
+<h1 class="page-title">What will it cost, and how high can I go?</h1>
+<form class="calc" id="calc" action="/calculator" method="get"
+      hx-get="/calculator/result" hx-target="#calc-result" hx-push-url="/calculator"
+      hx-trigger="input delay:200ms, submit">
+  <fieldset class="calc-group">
+    <legend>All-in cost</legend>
+    <label class="field">
+      <span class="field-label">Bid</span>
+      <span class="money-input"><span aria-hidden="true">$</span><input name="bid" inputmode="decimal" autocomplete="off" value="{{ calc.bid_text }}" placeholder="45"></span>
+    </label>
+  </fieldset>
+  <fieldset class="calc-group">
+    <legend>Max bid</legend>
+    <label class="field">
+      <span class="field-label">I can resell it for</span>
+      <span class="money-input"><span aria-hidden="true">$</span><input name="resale" inputmode="decimal" autocomplete="off" value="{{ calc.resale_text }}" placeholder="200"></span>
+    </label>
+    <label class="field">
+      <span class="field-label">and want to make at least</span>
+      <span class="money-input"><span aria-hidden="true">$</span><input name="profit" inputmode="decimal" autocomplete="off" value="{{ calc.profit_text }}" placeholder="50"></span>
+    </label>
+  </fieldset>
+  <noscript><button type="submit">Calculate</button></noscript>
+</form>
+<section id="calc-result" aria-live="polite">
+  {% include "_calculator_result.html" %}
+</section>
+{% endblock %}

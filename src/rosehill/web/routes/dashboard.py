@@ -22,6 +22,7 @@ def _render(request: Request, template: str) -> HTMLResponse:
     container: Container = request.app.state.container
     filters = DashboardFilters.from_params(request.query_params)
     view = _service(container).closing_soon(filters, container.clock())
+    pricing = container.pricing.current()
 
     def sort_params(key: str) -> dict[str, str]:
         """Clicking the active column flips direction; a new column starts ascending."""
@@ -31,7 +32,7 @@ def _render(request: Request, template: str) -> HTMLResponse:
         return params
 
     return request.app.state.templates.TemplateResponse(  # type: ignore[no-any-return]
-        request, template, {"view": view, "sort_params": sort_params}
+        request, template, {"view": view, "sort_params": sort_params, "pricing": pricing}
     )
 
 

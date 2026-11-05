@@ -13,6 +13,7 @@ from rosehill.config import Settings
 from rosehill.events import EventBus
 from rosehill.scraping.ports import LotSource
 from rosehill.scraping.registry import build_lot_source
+from rosehill.services.pricing import PricingService, default_config
 from rosehill.services.refresh import RefreshPolicy, RefreshService, RefreshTier
 from rosehill.services.sync import SyncService
 from rosehill.storage.db import make_engine, make_session_factory
@@ -35,6 +36,7 @@ class Container:
     source: LotSource
     sync: SyncService
     refresh: RefreshService
+    pricing: PricingService
 
     def uow(self) -> SqlUnitOfWork:
         return SqlUnitOfWork(self.session_factory)
@@ -83,4 +85,11 @@ def build_container(
         clock,
         close_grace=timedelta(minutes=settings.close_grace_minutes),
     )
-    return Container(settings, engine, session_factory, clock, events, lot_source, sync, refresh)
+    pricing = PricingService(
+        uow,
+        default_config(settings.default_premium_percent, settings.default_tax_percent),
+        clock,
+    )
+    return Container(
+        settings, engine, session_factory, clock, events, lot_source, sync, refresh, pricing
+    )

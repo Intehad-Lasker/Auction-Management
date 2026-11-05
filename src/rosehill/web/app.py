@@ -58,7 +58,8 @@ def create_app(container: Container, *, run_scheduler: bool = True) -> FastAPI:
     app.state.templates = build_templates(container)
     app.mount("/static", StaticFiles(directory=_HERE / "static"), name="static")
 
-    from rosehill.web.routes import dashboard
+    from rosehill.web.routes import dashboard, pricing
 
     app.include_router(dashboard.router)
+    app.include_router(pricing.router)
     return app

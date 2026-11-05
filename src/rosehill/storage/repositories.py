@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Collection
 from datetime import datetime
 from types import TracebackType
-from typing import Self
+from typing import Any, Self
 
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session, sessionmaker
@@ -19,6 +19,7 @@ from rosehill.storage.tables import (
     LotRow,
     LotSnapshotRow,
     ScrapeRunRow,
+    SettingRow,
 )
 
 _IN_CHUNK = 500  # stay well under SQLite's bound-parameter limit
@@ -203,9 +204,27 @@ class SqlScrapeRunLog:
         )
 
 
+class SqlSettingsStore:
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def get(self, key: str) -> Any | None:
+        row = self._session.get(SettingRow, key)
+        return None if row is None else row.value
+
+    def put(self, key: str, value: Any, updated_at: datetime) -> None:
+        row = self._session.get(SettingRow, key)
+        if row is None:
+            self._session.add(SettingRow(key=key, value=value, updated_at=updated_at))
+        else:
+            row.value = value
+            row.updated_at = updated_at
+
+
 class SqlUnitOfWork:
     lots: SqlLotStore
     runs: SqlScrapeRunLog
+    settings: SqlSettingsStore
 
     def __init__(self, session_factory: sessionmaker[Session]) -> None:
         self._session_factory = session_factory
@@ -214,6 +233,7 @@ class SqlUnitOfWork:
         self._session = self._session_factory()
         self.lots = SqlLotStore(self._session)
         self.runs = SqlScrapeRunLog(self._session)
+        self.settings = SqlSettingsStore(self._session)
         return self
 
     def __exit__(
